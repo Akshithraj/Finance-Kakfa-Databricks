@@ -1,0 +1,1324 @@
+{
+  "datasets": [
+    {
+      "name": "transaction_volume",
+      "displayName": "Transaction Volume (Sliding Window)",
+      "config": {
+        "version": "1.1",
+        "source": "finance.gold.transaciton_count_by_minute_sliding_window",
+        "dimensions": [
+          {
+            "name": "window_start",
+            "expr": "window_start"
+          },
+          {
+            "name": "window_end",
+            "expr": "window_end"
+          }
+        ],
+        "measures": [
+          {
+            "name": "transaction_count",
+            "expr": "SUM(transaction_count)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "transactions",
+      "displayName": "Transactions",
+      "config": {
+        "version": "1.1",
+        "source": "finance.silver.transactions",
+        "dimensions": [
+          {
+            "name": "transaction_date",
+            "expr": "DATE(transaction_timestamp)"
+          },
+          {
+            "name": "transaction_hour",
+            "expr": "HOUR(transaction_timestamp)"
+          },
+          {
+            "name": "payment_channel",
+            "expr": "payment_channel"
+          },
+          {
+            "name": "is_international",
+            "expr": "is_international"
+          },
+          {
+            "name": "merchant_name",
+            "expr": "merchant_name"
+          },
+          {
+            "name": "merchant_category",
+            "expr": "merchant_category"
+          },
+          {
+            "name": "city",
+            "expr": "city"
+          },
+          {
+            "name": "country",
+            "expr": "country"
+          },
+          {
+            "name": "status",
+            "expr": "status"
+          },
+          {
+            "name": "transaction_type",
+            "expr": "transaction_type"
+          }
+        ],
+        "measures": [
+          {
+            "name": "transaction_count",
+            "expr": "COUNT(*)"
+          },
+          {
+            "name": "total_amount",
+            "expr": "SUM(amount)"
+          },
+          {
+            "name": "avg_amount",
+            "expr": "AVG(amount)"
+          },
+          {
+            "name": "transactions_today",
+            "expr": "COUNT(CASE WHEN DATE(transaction_timestamp) = CURRENT_DATE() THEN 1 END)"
+          },
+          {
+            "name": "amount_today",
+            "expr": "SUM(CASE WHEN DATE(transaction_timestamp) = CURRENT_DATE() THEN amount END)"
+          },
+          {
+            "name": "successful_transactions",
+            "expr": "COUNT(CASE WHEN status = 'approved' THEN 1 END)"
+          },
+          {
+            "name": "success_rate",
+            "expr": "COUNT(CASE WHEN status = 'approved' THEN 1 END) * 100.0 / COUNT(*)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "high_value_alerts",
+      "displayName": "High Value Alerts",
+      "config": {
+        "version": "1.1",
+        "source": "finance.gold.high_value_transactions_alert",
+        "dimensions": [
+          {
+            "name": "alert_timestamp",
+            "expr": "alert_timestamp"
+          },
+          {
+            "name": "merchant_category",
+            "expr": "merchant_category"
+          },
+          {
+            "name": "merchant_name",
+            "expr": "merchant_name"
+          },
+          {
+            "name": "customer_name",
+            "expr": "customer_name"
+          },
+          {
+            "name": "customer_email",
+            "expr": "customer_email"
+          },
+          {
+            "name": "city",
+            "expr": "city"
+          },
+          {
+            "name": "country",
+            "expr": "country"
+          }
+        ],
+        "measures": [
+          {
+            "name": "alert_count",
+            "expr": "COUNT(*)"
+          },
+          {
+            "name": "total_high_value_amount",
+            "expr": "SUM(transaction_amount)"
+          },
+          {
+            "name": "avg_transaction_amount",
+            "expr": "AVG(transaction_amount)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fraud_alerts",
+      "displayName": "Fraud Alerts",
+      "config": {
+        "version": "1.1",
+        "source": "finance.gold.fraud_card_alert",
+        "dimensions": [
+          {
+            "name": "alert_timestamp",
+            "expr": "alert_timestamp"
+          },
+          {
+            "name": "risk_level",
+            "expr": "risk_level"
+          },
+          {
+            "name": "reason_description",
+            "expr": "reason_description"
+          },
+          {
+            "name": "customer_name",
+            "expr": "customer_name"
+          },
+          {
+            "name": "customer_email",
+            "expr": "customer_email"
+          },
+          {
+            "name": "merchant_name",
+            "expr": "merchant_name"
+          },
+          {
+            "name": "merchant_category",
+            "expr": "merchant_category"
+          },
+          {
+            "name": "transaction_city",
+            "expr": "transaction_city"
+          },
+          {
+            "name": "transaction_country",
+            "expr": "transaction_country"
+          }
+        ],
+        "measures": [
+          {
+            "name": "alert_count",
+            "expr": "COUNT(*)"
+          },
+          {
+            "name": "total_fraud_amount",
+            "expr": "SUM(amount)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "customer_risk",
+      "displayName": "Customer Risk Analysis",
+      "config": {
+        "version": "1.1",
+        "source": "WITH fraud_summary AS (\n  SELECT \n    customer_id,\n    COUNT(*) AS fraud_count,\n    SUM(amount) AS total_fraud_amount,\n    MAX(alert_timestamp) AS last_fraud_date,\n    MAX(risk_level) AS max_risk_level\n  FROM finance.gold.fraud_card_alert\n  GROUP BY customer_id\n) SELECT \n  c.customer_id,\n  c.first_name,\n  c.last_name,\n  CONCAT(c.first_name, ' ', c.last_name) AS customer_name,\n  c.email,\n  c.city,\n  c.state,\n  c.country,\n  c.age,\n  c.gender,\n  c.customer_segment,\n  c.risk_score,\n  COALESCE(f.fraud_count, 0) AS fraud_count,\n  COALESCE(f.total_fraud_amount, 0) AS total_fraud_amount,\n  f.last_fraud_date,\n  f.max_risk_level\nFROM finance.silver.customers c LEFT JOIN fraud_summary f ON c.customer_id = f.customer_id\n",
+        "dimensions": [
+          {
+            "name": "customer_id",
+            "expr": "customer_id"
+          },
+          {
+            "name": "first_name",
+            "expr": "first_name"
+          },
+          {
+            "name": "last_name",
+            "expr": "last_name"
+          },
+          {
+            "name": "customer_name",
+            "expr": "customer_name"
+          },
+          {
+            "name": "email",
+            "expr": "email"
+          },
+          {
+            "name": "city",
+            "expr": "city"
+          },
+          {
+            "name": "state",
+            "expr": "state"
+          },
+          {
+            "name": "country",
+            "expr": "country"
+          },
+          {
+            "name": "age",
+            "expr": "age"
+          },
+          {
+            "name": "gender",
+            "expr": "gender"
+          },
+          {
+            "name": "customer_segment",
+            "expr": "customer_segment"
+          },
+          {
+            "name": "last_fraud_date",
+            "expr": "last_fraud_date"
+          },
+          {
+            "name": "max_risk_level",
+            "expr": "max_risk_level"
+          }
+        ],
+        "measures": [
+          {
+            "name": "fraud_count",
+            "expr": "SUM(fraud_count)"
+          },
+          {
+            "name": "total_fraud_amount",
+            "expr": "SUM(total_fraud_amount)"
+          },
+          {
+            "name": "avg_risk_score",
+            "expr": "AVG(risk_score)"
+          },
+          {
+            "name": "customer_count",
+            "expr": "COUNT(DISTINCT customer_id)"
+          },
+          {
+            "name": "high_risk_customers",
+            "expr": "COUNT(DISTINCT CASE WHEN risk_score > 70 THEN customer_id END)"
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "cb59d84d",
+      "displayName": "Page 1",
+      "layout": [
+        {
+          "widget": {
+            "name": "transactions_today",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "measure(transactions_today)",
+                      "expression": "MEASURE(`transactions_today`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Transactions Today",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(transactions_today)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "amount_today",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "measure(amount_today)",
+                      "expression": "MEASURE(`amount_today`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Amount Today",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(amount_today)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "fraud_alerts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fraud_alerts",
+                  "fields": [
+                    {
+                      "name": "measure(alert_count)",
+                      "expression": "MEASURE(`alert_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Fraud Alerts",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(alert_count)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "high_value_alerts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "high_value_alerts",
+                  "fields": [
+                    {
+                      "name": "measure(alert_count)",
+                      "expression": "MEASURE(`alert_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "High Value Alerts",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(alert_count)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_amount",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "measure(avg_amount)",
+                      "expression": "MEASURE(`avg_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Avg Transaction Amount",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_amount)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "success_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "measure(success_rate)",
+                      "expression": "MEASURE(`success_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Transaction Success Rate",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(success_rate)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "transaction_volume",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transaction_volume",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "measure(transaction_count)",
+                      "expression": "MEASURE(`transaction_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Real-Time Transaction Volume (5-min Sliding Window)",
+                "showTitle": true
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "displayName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(transaction_count)",
+                  "displayName": "transaction_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "fraud_by_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fraud_alerts",
+                  "fields": [
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "measure(alert_count)",
+                      "expression": "MEASURE(`alert_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Fraud Alerts by Risk Level",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "risk_level",
+                  "displayName": "risk_level",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(alert_count)",
+                  "displayName": "alert_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "risk_level",
+                  "displayName": "risk_level",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "high_value_by_merchant",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "high_value_alerts",
+                  "fields": [
+                    {
+                      "name": "merchant_category",
+                      "expression": "`merchant_category`"
+                    },
+                    {
+                      "name": "measure(alert_count)",
+                      "expression": "MEASURE(`alert_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "High Value Alerts by Merchant Category",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "merchant_category",
+                  "displayName": "merchant_category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(alert_count)",
+                  "displayName": "alert_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "merchant_category",
+                  "displayName": "merchant_category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "top_merchants",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "merchant_name",
+                      "expression": "`merchant_name`"
+                    },
+                    {
+                      "name": "measure(transaction_count)",
+                      "expression": "MEASURE(`transaction_count`)"
+                    },
+                    {
+                      "name": "measure(total_amount)",
+                      "expression": "MEASURE(`total_amount`)"
+                    },
+                    {
+                      "name": "measure(avg_amount)",
+                      "expression": "MEASURE(`avg_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Top 10 Merchants by Transaction Volume",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "merchant_name"
+                  },
+                  {
+                    "fieldName": "measure(transaction_count)"
+                  },
+                  {
+                    "fieldName": "measure(total_amount)"
+                  },
+                  {
+                    "fieldName": "measure(avg_amount)"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "top_cities",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    },
+                    {
+                      "name": "measure(transaction_count)",
+                      "expression": "MEASURE(`transaction_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Top 10 Cities by Transaction Count",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "city",
+                  "displayName": "city",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(transaction_count)",
+                  "displayName": "transaction_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "city",
+                  "displayName": "city",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "top_countries",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "country",
+                      "expression": "`country`"
+                    },
+                    {
+                      "name": "measure(total_amount)",
+                      "expression": "MEASURE(`total_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Top 10 Countries by Transaction Amount",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country",
+                  "displayName": "country",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_amount)",
+                  "displayName": "total_amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "country",
+                  "displayName": "country",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 15,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "hourly_patterns",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "transaction_hour",
+                      "expression": "`transaction_hour`"
+                    },
+                    {
+                      "name": "measure(transaction_count)",
+                      "expression": "MEASURE(`transaction_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Transaction Patterns by Hour of Day",
+                "showTitle": true
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "transaction_hour",
+                  "displayName": "transaction_hour",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(transaction_count)",
+                  "displayName": "transaction_count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "fraud_alert_details",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fraud_alerts",
+                  "fields": [
+                    {
+                      "name": "alert_timestamp",
+                      "expression": "`alert_timestamp`"
+                    },
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    },
+                    {
+                      "name": "customer_email",
+                      "expression": "`customer_email`"
+                    },
+                    {
+                      "name": "measure(total_fraud_amount)",
+                      "expression": "MEASURE(`total_fraud_amount`)"
+                    },
+                    {
+                      "name": "merchant_name",
+                      "expression": "`merchant_name`"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "reason_description",
+                      "expression": "`reason_description`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Recent Fraud Alert Details",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "alert_timestamp"
+                  },
+                  {
+                    "fieldName": "customer_name"
+                  },
+                  {
+                    "fieldName": "customer_email"
+                  },
+                  {
+                    "fieldName": "measure(total_fraud_amount)"
+                  },
+                  {
+                    "fieldName": "merchant_name"
+                  },
+                  {
+                    "fieldName": "risk_level"
+                  },
+                  {
+                    "fieldName": "reason_description"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "payment_channel_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "measure(transaction_count)",
+                      "expression": "MEASURE(`transaction_count`)"
+                    },
+                    {
+                      "name": "payment_channel",
+                      "expression": "`payment_channel`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Transactions by Payment Channel",
+                "showTitle": true
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(transaction_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "payment_channel",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 29,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "international_split_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transactions",
+                  "fields": [
+                    {
+                      "name": "measure(transaction_count)",
+                      "expression": "MEASURE(`transaction_count`)"
+                    },
+                    {
+                      "name": "is_international",
+                      "expression": "`is_international`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "International vs Domestic Transactions",
+                "showTitle": true
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(transaction_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "is_international",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 29,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "customer_risk_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "customer_risk",
+                  "fields": [
+                    {
+                      "name": "customer_name",
+                      "expression": "`customer_name`"
+                    },
+                    {
+                      "name": "email",
+                      "expression": "`email`"
+                    },
+                    {
+                      "name": "customer_segment",
+                      "expression": "`customer_segment`"
+                    },
+                    {
+                      "name": "age",
+                      "expression": "`age`"
+                    },
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    },
+                    {
+                      "name": "country",
+                      "expression": "`country`"
+                    },
+                    {
+                      "name": "measure(avg_risk_score)",
+                      "expression": "MEASURE(`avg_risk_score`)"
+                    },
+                    {
+                      "name": "measure(fraud_count)",
+                      "expression": "MEASURE(`fraud_count`)"
+                    },
+                    {
+                      "name": "measure(total_fraud_amount)",
+                      "expression": "MEASURE(`total_fraud_amount`)"
+                    },
+                    {
+                      "name": "max_risk_level",
+                      "expression": "`max_risk_level`"
+                    },
+                    {
+                      "name": "last_fraud_date",
+                      "expression": "`last_fraud_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "High-Risk Customer Analysis",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "customer_name"
+                  },
+                  {
+                    "fieldName": "email"
+                  },
+                  {
+                    "fieldName": "customer_segment"
+                  },
+                  {
+                    "fieldName": "age"
+                  },
+                  {
+                    "fieldName": "city"
+                  },
+                  {
+                    "fieldName": "country"
+                  },
+                  {
+                    "fieldName": "measure(avg_risk_score)"
+                  },
+                  {
+                    "fieldName": "measure(fraud_count)"
+                  },
+                  {
+                    "fieldName": "measure(total_fraud_amount)"
+                  },
+                  {
+                    "fieldName": "max_risk_level"
+                  },
+                  {
+                    "fieldName": "last_fraud_date"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 33,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "77a59b6b",
+      "displayName": "Untitled page",
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
