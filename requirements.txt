@@ -1,0 +1,18 @@
+pyspark==3.3.2
+# If you run on Databricks runtimes, pyspark is provided by the runtime; keep this for local dev
+
+delta-spark==2.1.0
+# delta-spark aligns with your Spark version and Databricks runtime. Update to the version matching your environment.
+
+kafka-python==2.0.2
+pandas==2.1.0
+pyyaml==6.0
+
+# Optional / dev
+pytest==7.3.1
+black==23.1.0
+isort==5.12.0
+
+# Notes:
+# - Pin versions to match your Databricks runtime when deploying there (Databricks often bundles Spark & Delta).
+# - If running on Databricks clusters, install extra Python libs via cluster libraries or init scripts instead of pip in notebooks.
