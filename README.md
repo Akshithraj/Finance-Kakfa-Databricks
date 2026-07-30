@@ -5,7 +5,6 @@ Overview:
 This project simulates a production-grade financial transaction processing system that ingests streaming data from Kafka, processes it through the Medallion Architecture, detects fraudulent and high-value transactions in near real time, and sends automated alerts.
 
 Architecture:
-
                     +----------------------+
                     |   Transaction Data   |
                     |   Kafka Producer     |
@@ -42,7 +41,7 @@ Architecture:
                             |
                             v
                  Databricks Dashboard
-
+                 
 
 
  Key Features:
