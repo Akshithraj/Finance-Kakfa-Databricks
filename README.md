@@ -5,6 +5,7 @@ Overview:
 This project simulates a production-grade financial transaction processing system that ingests streaming data from Kafka, processes it through the Medallion Architecture, detects fraudulent and high-value transactions in near real time, and sends automated alerts.
 
 Architecture:
+```text
                     +----------------------+
                     |   Transaction Data   |
                     |   Kafka Producer     |
@@ -41,7 +42,9 @@ Architecture:
                             |
                             v
                  Databricks Dashboard
-                 
+```
+
+---
 
 
  Key Features:
@@ -70,6 +73,8 @@ Tech Stack:
 | Dashboard     | Databricks Dashboard       |
 
 Repository Structure:
+
+```text
 Finance-Kafka-Databricks/
 
 │
@@ -89,6 +94,10 @@ Finance-Kafka-Databricks/
 ├── send_email.py.ipynb
 │
 └── Finance Streaming Analytics.lvdash.json
+```
+
+---
+
 
 Pipeline Flow:
 Bronze Layer:
