@@ -1,5 +1,6 @@
 Finance Kafka Databricks – Real-Time Streaming Analytics & Fraud Detection:
-End-to-end streaming data engineering project built on **Databricks**, **Apache Kafka**, **Spark Structured Streaming**, and **Delta Lake** using the **Medallion Architecture (Bronze → Silver → Gold)**.
+
+End-to-end streaming data engineering project built on Databricks, Apache Kafka, Spark Structured Streaming, and Delta Lake using the Medallion Architecture (Bronze → Silver → Gold).
 
 Overview:
 This project simulates a production-grade financial transaction processing system that ingests streaming data from Kafka, processes it through the Medallion Architecture, detects fraudulent and high-value transactions in near real time, and sends automated alerts.
